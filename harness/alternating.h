@@ -4,31 +4,34 @@
 #include <FastLED.h>
 
 #include "render.h"
+#include "pattern.h"
 
-class ShootingStar : Pattern {
+class Alternating : Pattern {
   public:
-    ShootingStar(int strip_length, CRGBPalette16 palette)
+    Alternating(int strip_length, CRGBPalette16 palette)
       : strip_length(strip_length),
         palette(palette) {
       pixels = new CRGB[strip_length]();
       counter = 0;
     }
 
-    ~ShootingStar() {
+    ~Alternating() {
       delete[] pixels;
     }
 
     void render(Renderer &renderer, Adafruit_NeoPixel &strip) {
-      int counterInt = counter;
       for (int i = 0; i < strip_length; i++) {
-        pixels[i].subtractFromRGB(max(1, 255 / strip_length));
+        if ((i + int(counter)) % 4 == 0) {
+          pixels[i] = ColorFromPalette(palette, int(2 * i + abs(counter)) % 255, 255, LINEARBLEND);
+        } else {
+          pixels[i] = 0;
+        }
       }
-      pixels[int(abs(counter)) % strip_length] = ColorFromPalette(palette, int(abs(counter)) % 255, 255, LINEARBLEND);
-      //pixels[counterInt] = CRGB::Red;
+      
       
       renderer.renderLEDs(strip, pixels, strip_length);
 
-      counter += 1;
+      counter += 0.1;
 //      if (counter > strip_length) {
 //        counter = 0;
 //      } else if (counter < 0) {

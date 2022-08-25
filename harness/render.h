@@ -15,8 +15,8 @@ class Renderer {
     Renderer(bool white) : useWhite(white) {}
   
     // renderLEDs writes FastLED colors through the Neopixel library.
-    void renderLEDs(Adafruit_NeoPixel &strip, const CRGB pixels[], int length) {
-      if (digitalRead(SLIDE_SWITCH)) {
+    const void renderLEDs(Adafruit_NeoPixel &strip, const CRGB pixels[], int length) {
+      if (isOff) {
         strip.fill(0);
         strip.show();
         return;
@@ -38,6 +38,10 @@ class Renderer {
       useWhite = white;
     }
 
+    void setOff(bool off) {
+      isOff = off;
+    }
+
   protected:
-    bool useWhite;
+    bool useWhite, isOff;
 };

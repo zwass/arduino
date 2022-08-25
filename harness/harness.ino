@@ -1,4 +1,5 @@
 #include <Adafruit_TinyUSB.h>
+#include <Streaming.h>
 #include <AceRoutine.h>
 using namespace ace_routine;
 
@@ -9,9 +10,12 @@ using namespace ace_routine;
 
 #include <FastLED.h>
 
+#include "palettes.h"
 #include "pins.h"
 #include "render.h"
+#include "pulse.h"
 #include "shooting_star.h"
+#include "alternating.h"
 
 COROUTINE(blinkLed) {
   COROUTINE_LOOP() {
@@ -26,18 +30,39 @@ int frame_micros(int frame_rate) {
   return 1000000 / frame_rate;
 }
 
-#define LED_COUNT  72
-#define BRIGHTNESS 128
-Adafruit_NeoPixel strip(LED_COUNT, PIN_A1, NEO_GRBW + NEO_KHZ800);
+int level, level_avg;
+int leftCount = 0, rightCount = 0;
+
+#define LED_COUNT  56
+#define BRIGHTNESS 64
+Adafruit_NeoPixel stripLeft(LED_COUNT, PIN_A1, NEO_GRBW + NEO_KHZ800);
+Adafruit_NeoPixel stripRight(LED_COUNT, PIN_A6, NEO_GRBW + NEO_KHZ800);
 Renderer renderer;
 Renderer starRenderer(true);
-ShootingStar star(strip, LED_COUNT, RainbowColors_p, starRenderer);
-
+ShootingStar shootingStar(LED_COUNT, RainbowColors_p);
+Pulse pulse(LED_COUNT, RainbowColors_p, level, level_avg);
+Alternating alternating(LED_COUNT, RainbowColors_p);
 
 
 COROUTINE(pattern) {
   COROUTINE_LOOP() {
-    star.render();
+    switch (leftCount % 3) {
+      case 0:
+      pulse.render(renderer, stripLeft);
+      pulse.render(renderer, stripRight);
+      break;
+
+      case 1:
+      shootingStar.render(renderer, stripLeft);
+      shootingStar.render(renderer, stripRight);
+      break;
+
+      case 2:
+      alternating.render(renderer, stripLeft);
+      alternating.render(renderer, stripRight);
+      break;
+    }
+    
     COROUTINE_DELAY_MICROS(frame_micros(100));
   }
 }
@@ -75,8 +100,7 @@ COROUTINE(pattern) {
   }
   }*/
 
-int count_right = 0;
-int count_left = 0;
+
 COROUTINE(buttons) {
   COROUTINE_LOOP() {
     static bool leftDown, rightDown;
@@ -85,7 +109,7 @@ COROUTINE(buttons) {
       leftDown = true;
     } else {
       if (leftDown) {
-        count_left++;
+        leftCount++;
         //Serial.println("left pressed");
       }
       leftDown = false;
@@ -95,7 +119,7 @@ COROUTINE(buttons) {
       rightDown = true;
     } else {
       if (rightDown) {
-        count_right++;
+        rightCount++;
         //Serial.println("right pressed");
       }
       rightDown = false;
@@ -134,28 +158,6 @@ COROUTINE(buttons) {
   }*/
 
 
-CRGBPalette16 getPalette() {
-  switch (count_left % 3) {
-    case 0:
-      return RainbowColors_p;
-    case 1:
-      return CRGBPalette16(
-               CRGB::Indigo,  CRGB::Yellow,  CRGB::HotPink,  CRGB::Yellow,
-               CRGB::Indigo,  CRGB::Yellow,  CRGB::HotPink,  CRGB::Yellow,
-               CRGB::Indigo,  CRGB::Yellow,  CRGB::HotPink,  CRGB::Yellow,
-               CRGB::Indigo,  CRGB::Yellow,  CRGB::HotPink,  CRGB::Yellow
-             );
-
-    case 2:
-      return CRGBPalette16(
-               CRGB(0x7f009e),  CRGB::Red,  CRGB::Indigo,  CRGB::Red,
-               CRGB(0x7f009e),  CRGB::Red,  CRGB::Indigo,  CRGB::Red,
-               CRGB(0x7f009e),  CRGB::Red,  CRGB::Indigo,  CRGB::Red,
-               CRGB(0x7f009e),  CRGB::Red,  CRGB::Indigo,  CRGB::Red
-             );
-  }
-  return CRGBPalette16();
-}
 
 #define ONBOARD_LEDS 10
 Adafruit_NeoPixel onboard(ONBOARD_LEDS, PIN_NEOPIXEL, NEO_GRB + NEO_KHZ800);
@@ -183,7 +185,7 @@ TBlendType    currentBlending = LINEARBLEND;
       pixels[i].subtractFromRGB(max(1, 255 / ONBOARD_LEDS));
     }
     //fadeToBlackBy(pixels, ONBOARD_LEDS, 64);
-    pixels[counterInt] = ColorFromPalette(getPalette(), paletteIndex, 255, currentBlending);
+    pixels[counterInt] = ColorFromPalette(getPalette(count_left), paletteIndex, 255, currentBlending);
     //pixels[counterInt] = CRGB::FairyLight;
     renderLEDs(onboard, pixels, ONBOARD_LEDS);
 
@@ -250,7 +252,7 @@ void onPDMdata() {
 
 #define LOG_SOUND
 #define LEVELS_HISTORY 144
-int level, level_avg;
+
 int levels[LEVELS_HISTORY];
 int levelsI;
 COROUTINE(sound) {
@@ -274,11 +276,7 @@ COROUTINE(sound) {
     level_avg = 1.25 * (sum / LEVELS_HISTORY);
 
 #ifdef LOG_SOUND
-    Serial.print("avg: ");
-    Serial.print(level_avg);
-    Serial.print(" level: ");
-    Serial.print(level);
-    Serial.println();
+Serial << "avg: " << level_avg << " level: " << level << endl;
 #endif
 
     // clear the read count
@@ -290,7 +288,7 @@ COROUTINE(sound) {
 
 int paletteIndex = 0;
 int frames = 0;
-#define TARGET_FRAME_RATE 30
+#define TARGET_FRAME_RATE 100
 COROUTINE(onboard_pattern) {
   static int last_time = coroutineMicros();
   static int frame_time = frame_micros(TARGET_FRAME_RATE);
@@ -305,7 +303,7 @@ COROUTINE(onboard_pattern) {
     paletteIndex += 1;
     for (int i = 0; i < ONBOARD_LEDS; i++) {
       if (level > level_avg) {
-        pixels[i] = ColorFromPalette(getPalette(), paletteIndex, 255, currentBlending);
+        pixels[i] = ColorFromPalette(getPalette(leftCount), paletteIndex, 255, currentBlending);
       } else {
         pixels[i].subtractFromRGB(10);
       }
@@ -377,9 +375,12 @@ void setup() {
 
   pinMode(LED_BUILTIN, OUTPUT);
 
-  strip.begin();           // INITIALIZE NeoPixel strip object (REQUIRED)
-  strip.show();            // Turn OFF all pixels ASAP
-  strip.setBrightness(BRIGHTNESS);
+  stripLeft.begin();           // INITIALIZE NeoPixel strip object (REQUIRED)
+  stripLeft.show();            // Turn OFF all pixels ASAP
+  stripLeft.setBrightness(BRIGHTNESS);
+  stripRight.begin();           // INITIALIZE NeoPixel strip object (REQUIRED)
+  stripRight.show();            // Turn OFF all pixels ASAP
+  stripRight.setBrightness(BRIGHTNESS);
 
   onboard.begin();           // INITIALIZE NeoPixel strip object (REQUIRED)
   onboard.show();            // Turn OFF all pixels ASAP
