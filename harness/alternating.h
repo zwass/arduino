@@ -8,9 +8,7 @@
 
 class Alternating : Pattern {
   public:
-    Alternating(int strip_length, CRGBPalette16 palette)
-      : strip_length(strip_length),
-        palette(palette) {
+    Alternating(int strip_length) : strip_length(strip_length) {
       pixels = new CRGB[strip_length]();
       counter = 0;
     }
@@ -19,7 +17,7 @@ class Alternating : Pattern {
       delete[] pixels;
     }
 
-    void render(Renderer &renderer, Adafruit_NeoPixel &strip) {
+    void render(Renderer &renderer, Adafruit_NeoPixel &strip, CRGBPalette16 &palette) {
       for (int i = 0; i < strip_length; i++) {
         if ((i + int(counter)) % 4 == 0) {
           pixels[i] = ColorFromPalette(palette, int(2 * i + abs(counter)) % 255, 255, LINEARBLEND);
@@ -27,21 +25,20 @@ class Alternating : Pattern {
           pixels[i] = 0;
         }
       }
-      
-      
+
+
       renderer.renderLEDs(strip, pixels, strip_length);
 
       counter += 0.1;
-//      if (counter > strip_length) {
-//        counter = 0;
-//      } else if (counter < 0) {
-//        counter = strip_length - 1;
-//      }
+      //      if (counter > strip_length) {
+      //        counter = 0;
+      //      } else if (counter < 0) {
+      //        counter = strip_length - 1;
+      //      }
     }
 
   protected:
     int strip_length;
     CRGB *pixels;
-    CRGBPalette16 palette;
     float counter;
 };

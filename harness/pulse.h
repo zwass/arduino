@@ -8,9 +8,8 @@
 
 class Pulse : Pattern {
   public:
-    Pulse(int strip_length, CRGBPalette16 palette, const int& level, const int& level_avg)
+    Pulse(int strip_length, const int& level, const int& level_avg)
       : strip_length(strip_length),
-        palette(palette),
         level(level),
         level_avg(level_avg) {
       pixels = new CRGB[strip_length]();
@@ -21,7 +20,7 @@ class Pulse : Pattern {
       delete[] pixels;
     }
 
-    void render(Renderer &renderer, Adafruit_NeoPixel &strip) {
+    void render(Renderer &renderer, Adafruit_NeoPixel &strip, CRGBPalette16 &palette) {
       for (int i = 0; i < strip_length; i++) {
         if (level > level_avg) {
           pixels[i] = ColorFromPalette(palette, int(abs(counter)) % 255, 255, LINEARBLEND);
@@ -37,7 +36,6 @@ class Pulse : Pattern {
   protected:
     int strip_length;
     CRGB *pixels;
-    CRGBPalette16 palette;
     float counter;
     const int& level;
     const int& level_avg;

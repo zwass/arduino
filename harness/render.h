@@ -7,8 +7,6 @@
 
 using neo = Adafruit_NeoPixel;
 
-#define WHITE 1
-
 class Renderer {
   public:
     Renderer() : useWhite(false) {}

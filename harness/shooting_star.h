@@ -7,9 +7,7 @@
 
 class ShootingStar : Pattern {
   public:
-    ShootingStar(int strip_length, CRGBPalette16 palette)
-      : strip_length(strip_length),
-        palette(palette) {
+    ShootingStar(int strip_length) : strip_length(strip_length) {
       pixels = new CRGB[strip_length]();
       counter = 0;
     }
@@ -18,7 +16,7 @@ class ShootingStar : Pattern {
       delete[] pixels;
     }
 
-    void render(Renderer &renderer, Adafruit_NeoPixel &strip) {
+    void render(Renderer &renderer, Adafruit_NeoPixel &strip, CRGBPalette16 &palette) {
       int counterInt = counter;
       for (int i = 0; i < strip_length; i++) {
         pixels[i].subtractFromRGB(max(1, 255 / strip_length));
@@ -39,6 +37,5 @@ class ShootingStar : Pattern {
   protected:
     int strip_length;
     CRGB *pixels;
-    CRGBPalette16 palette;
     float counter;
 };

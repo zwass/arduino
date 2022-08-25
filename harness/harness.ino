@@ -2,12 +2,8 @@
 #include <Streaming.h>
 #include <AceRoutine.h>
 using namespace ace_routine;
-
 #include <Adafruit_NeoPixel.h>
-
-
 #include <PDM.h>
-
 #include <FastLED.h>
 
 #include "palettes.h"
@@ -17,14 +13,14 @@ using namespace ace_routine;
 #include "shooting_star.h"
 #include "alternating.h"
 
-COROUTINE(blinkLed) {
+/*COROUTINE(blinkLed) {
   COROUTINE_LOOP() {
     digitalWrite(LED_BUILTIN, HIGH);
     COROUTINE_DELAY(10);
     digitalWrite(LED_BUILTIN, LOW);
     COROUTINE_DELAY(2000);
   }
-}
+}*/
 
 int frame_micros(int frame_rate) {
   return 1000000 / frame_rate;
@@ -38,28 +34,34 @@ int leftCount = 0, rightCount = 0;
 Adafruit_NeoPixel stripLeft(LED_COUNT, PIN_A1, NEO_GRBW + NEO_KHZ800);
 Adafruit_NeoPixel stripRight(LED_COUNT, PIN_A6, NEO_GRBW + NEO_KHZ800);
 Renderer renderer;
-Renderer starRenderer(true);
-ShootingStar shootingStar(LED_COUNT, RainbowColors_p);
-Pulse pulse(LED_COUNT, RainbowColors_p, level, level_avg);
-Alternating alternating(LED_COUNT, RainbowColors_p);
-
+ShootingStar shootingStar(LED_COUNT);
+Pulse pulse(LED_COUNT, level, level_avg);
+Alternating alternating(LED_COUNT);
 
 COROUTINE(pattern) {
   COROUTINE_LOOP() {
+    if (digitalRead(7)) {
+      renderer.setWhite(true);
+    } else {
+      renderer.setWhite(false);
+    }
+    
+    CRGBPalette16 palette = getPalette(rightCount);
+    
     switch (leftCount % 3) {
       case 0:
-      pulse.render(renderer, stripLeft);
-      pulse.render(renderer, stripRight);
+      pulse.render(renderer, stripLeft, palette);
+      pulse.render(renderer, stripRight, palette);
       break;
 
       case 1:
-      shootingStar.render(renderer, stripLeft);
-      shootingStar.render(renderer, stripRight);
+      shootingStar.render(renderer, stripLeft, palette);
+      shootingStar.render(renderer, stripRight, palette);
       break;
 
       case 2:
-      alternating.render(renderer, stripLeft);
-      alternating.render(renderer, stripRight);
+      alternating.render(renderer, stripLeft, palette);
+      alternating.render(renderer, stripRight, palette);
       break;
     }
     

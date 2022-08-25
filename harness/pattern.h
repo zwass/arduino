@@ -5,5 +5,5 @@
 #include "render.h"
 
 class Pattern {
-  virtual void render(Renderer &renderer, Adafruit_NeoPixel &strip) = 0;
+  virtual void render(Renderer &renderer, Adafruit_NeoPixel &strip, CRGBPalette16 &palette) = 0;
 };
