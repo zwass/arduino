@@ -12,6 +12,7 @@ using namespace ace_routine;
 #include "pulse.h"
 #include "shooting_star.h"
 #include "alternating.h"
+#include "glitter.h"
 
 /*COROUTINE(blinkLed) {
   COROUTINE_LOOP() {
@@ -36,6 +37,7 @@ Renderer renderer;
 ShootingStar shootingStar(LED_COUNT);
 Pulse pulse(LED_COUNT, level, level_avg);
 Alternating alternating(LED_COUNT);
+Glitter glitter(LED_COUNT);
 
 COROUTINE(pattern) {
   COROUTINE_LOOP() {
@@ -47,7 +49,7 @@ COROUTINE(pattern) {
     
     CRGBPalette16 palette = getPalette(rightCount);
     
-    switch (leftCount % 3) {
+    switch (leftCount % 4) {
       case 0:
       pulse.render(renderer, strip, palette);
       break;
@@ -58,6 +60,10 @@ COROUTINE(pattern) {
 
       case 2:
       alternating.render(renderer, strip, palette);
+      break;
+
+      case 3:
+      glitter.render(renderer, strip, palette);
       break;
     }
     
