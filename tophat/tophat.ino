@@ -351,6 +351,10 @@ COROUTINE(onboard_pattern) {
 
 void setup() {
   Serial.begin(9600);
+
+  // turn off speaker because of buzzing when touching the board
+  pinMode(11, OUTPUT);
+  digitalWrite(11,LOW);  
   
   // initialize PDM with:
   // - one channel (mono mode)
