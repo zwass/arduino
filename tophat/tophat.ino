@@ -32,6 +32,8 @@ int leftCount = 0, rightCount = 0;
 
 #define LED_COUNT 240
 #define BRIGHTNESS 32
+#define ONBOARD_BRIGHTNESS 16
+#define PATTERN_COUNT 4
 Adafruit_NeoPixel strip(LED_COUNT, PIN_A1, NEO_GRBW + NEO_KHZ800);
 Renderer renderer;
 ShootingStar shootingStar(LED_COUNT);
@@ -39,17 +41,27 @@ Pulse pulse(LED_COUNT, level, level_avg);
 Alternating alternating(LED_COUNT);
 Glitter glitter(LED_COUNT);
 
+#define ONBOARD_LEDS 10
+Adafruit_NeoPixel onboard(ONBOARD_LEDS, PIN_NEOPIXEL, NEO_GRB + NEO_KHZ800);
+CRGB pixels[ONBOARD_LEDS];
+TBlendType    currentBlending = LINEARBLEND;
+
 COROUTINE(pattern) {
   COROUTINE_LOOP() {
     if (digitalRead(7)) {
-      renderer.setWhite(true);
+      strip.setBrightness(BRIGHTNESS);
+      onboard.setBrightness(ONBOARD_BRIGHTNESS);
+      //renderer.setWhite(true);
     } else {
-      renderer.setWhite(false);
+      strip.setBrightness(BRIGHTNESS / 3);
+      onboard.setBrightness(ONBOARD_BRIGHTNESS / 3);
+      //renderer.setWhite(false);
     }
-    
-    CRGBPalette16 palette = getPalette(rightCount);
-    
-    switch (leftCount % 4) {
+
+    CRGBPalette16 palette = getPalette();
+
+    int patternIndex = map(analogRead(A2), 0, 1023, 0, PATTERN_COUNT); 
+    switch (patternIndex) {
       case 0:
       pulse.render(renderer, strip, palette);
       break;
@@ -104,27 +116,31 @@ COROUTINE(pattern) {
   }
   }*/
 
-
+/*
+ // Buttons stopped working for some reason. Seems like a hardware issue on the board.
+ 
 COROUTINE(buttons) {
   COROUTINE_LOOP() {
     static bool leftDown, rightDown;
 
     if (digitalRead(LEFT_BUTTON)) {
       leftDown = true;
+      //Serial.println("leftdown");
     } else {
       if (leftDown) {
         leftCount++;
-        //Serial.println("left pressed");
+        Serial.println("left pressed");
       }
       leftDown = false;
     }
 
     if (digitalRead(RIGHT_BUTTON)) {
       rightDown = true;
+      //Serial.println("rightdown");
     } else {
       if (rightDown) {
         rightCount++;
-        //Serial.println("right pressed");
+        Serial.println("right pressed");
       }
       rightDown = false;
     }
@@ -132,6 +148,23 @@ COROUTINE(buttons) {
     COROUTINE_DELAY(1);
   }
 }
+ */
+
+/*
+ COROUTINE(potentiometers) {
+  COROUTINE_LOOP() {
+    static bool leftDown, rightDown;
+
+leftCount = map(analogRead(A2), 0, 1023, 0, 10); 
+
+rightCount = map(analogRead(A3), 0, 1023, 0, 10); 
+
+Serial << "A2: " << leftCount << " A3: " << rightCount << endl;
+
+    COROUTINE_DELAY(10);
+  }
+}
+*/
 
 /*
   int counter = 0;
@@ -163,10 +196,7 @@ COROUTINE(buttons) {
 
 
 
-#define ONBOARD_LEDS 10
-Adafruit_NeoPixel onboard(ONBOARD_LEDS, PIN_NEOPIXEL, NEO_GRB + NEO_KHZ800);
-CRGB pixels[ONBOARD_LEDS];
-TBlendType    currentBlending = LINEARBLEND;
+
 
 /*
   float counter = 0;
@@ -254,7 +284,7 @@ void onPDMdata() {
   samplesRead = bytesToRead / 2;
 }
 
-#define LOG_SOUND
+//#define LOG_SOUND
 #define LEVELS_HISTORY 144
 
 int levels[LEVELS_HISTORY];
@@ -307,7 +337,7 @@ COROUTINE(onboard_pattern) {
     paletteIndex += 1;
     for (int i = 0; i < ONBOARD_LEDS; i++) {
       if (level > level_avg) {
-        pixels[i] = ColorFromPalette(getPalette(leftCount), paletteIndex, 255, currentBlending);
+        pixels[i] = ColorFromPalette(getPalette(), paletteIndex, 255, currentBlending);
       } else {
         pixels[i].subtractFromRGB(10);
       }
@@ -370,6 +400,7 @@ void setup() {
     Serial.println("Failed to start PDM!");
   }
 
+
   // Enables more accurate clock (possibly at the expense of power consumption? But that's probably only when using low power mode?)
   // See https://github.com/adafruit/Adafruit_nRF52_Arduino/pull/551
   dwt_enable();
@@ -382,6 +413,8 @@ void setup() {
   LogBinProfiler::createProfilers();
 
   pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(A2, INPUT);
+  pinMode(A3, INPUT);
 
   strip.begin();           // INITIALIZE NeoPixel strip object (REQUIRED)
   strip.show();            // Turn OFF all pixels ASAP
